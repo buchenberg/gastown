@@ -84,6 +84,54 @@ cd gastown
 The container persists between SSH sessions. Running `start-mayor.sh` again
 re-attaches to the running mayor session.
 
+## Create rigs
+
+A rig is a project container — each rig has its own repo, beads database,
+crew, polecats, witness, and refinery.
+
+### From an existing repo
+
+```bash
+docker compose -f docker-compose.azure.yml exec gastown gt rig add myrig https://github.com/user/myrig
+# or Azure DevOps
+docker compose -f docker-compose.azure.yml exec gastown gt rig add myrig https://dev.azure.com/myorg/myproject/_git/myrepo
+```
+
+### Create a new Azure DevOps repo + rig in one step
+
+```bash
+docker compose -f docker-compose.azure.yml exec gastown gt rig add myrig --azure
+```
+
+### Adopt an existing directory
+
+```bash
+docker compose -f docker-compose.azure.yml exec gastown gt rig add myrig --adopt
+```
+
+### Rig flags
+
+| Flag | Purpose |
+|---|---|
+| `--prefix <p>` | Beads issue prefix (default: derived from name) |
+| `--adopt` | Register existing directory without cloning |
+| `--force` | Force overwrite if directory exists |
+| `--push-url` | Push URL for forked rigs |
+| `--upstream-url` | Upstream URL for forked rigs |
+
+### Rig lifecycle
+
+```bash
+gt rig list                    # List all rigs
+gt rig boot myrig              # Start witness + refinery
+gt rig start myrig             # Resume a parked rig
+gt rig stop myrig              # Stop all agents
+gt rig remove myrig            # Remove from registry (keeps files)
+```
+
+The rig's refinery config is at `<town-root>/<rig-name>/config.json`. Set
+`vcs_provider` and `merge_strategy` there to control PR operations.
+
 ## Using Azure DevOps as the VCS provider
 
 Set `vcs_provider: azuredevops` in your rig's refinery config:
