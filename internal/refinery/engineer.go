@@ -468,8 +468,14 @@ func (e *Engineer) initPRProvider() error {
 			return err
 		}
 		e.prProvider = p
+	case "azuredevops":
+		p, err := newAzureDevOpsPRProvider(e.git)
+		if err != nil {
+			return err
+		}
+		e.prProvider = p
 	default:
-		return fmt.Errorf("unknown vcs_provider %q (supported: github, bitbucket)", e.config.VCSProvider)
+		return fmt.Errorf("unknown vcs_provider %q (supported: github, bitbucket, azuredevops)", e.config.VCSProvider)
 	}
 	return nil
 }

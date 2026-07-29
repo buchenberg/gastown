@@ -40,6 +40,7 @@ var (
 	installNoBeads    bool
 	installGit        bool
 	installGitHub     string
+	installAzure      string
 	installPublic     bool
 	installShell      bool
 	installWrappers   bool
@@ -86,6 +87,7 @@ func init() {
 	installCmd.Flags().BoolVar(&installNoBeads, "no-beads", false, "Skip town beads initialization")
 	installCmd.Flags().BoolVar(&installGit, "git", false, "Initialize git with .gitignore")
 	installCmd.Flags().StringVar(&installGitHub, "github", "", "Create GitHub repo (format: owner/repo, private by default)")
+	installCmd.Flags().StringVar(&installAzure, "azure", "", "Create Azure DevOps repo (format: org/project/repo)")
 	installCmd.Flags().BoolVar(&installPublic, "public", false, "Make GitHub repo public (use with --github)")
 	installCmd.Flags().BoolVar(&installShell, "shell", false, "Install shell integration (sets GT_TOWN_ROOT/GT_RIG env vars)")
 	installCmd.Flags().BoolVar(&installWrappers, "wrappers", false, "Install gt-codex/gt-gemini/gt-opencode wrapper scripts to ~/bin/")
@@ -338,9 +340,9 @@ func runInstall(cmd *cobra.Command, args []string) error {
 
 	// Initialize git BEFORE beads so that bd can compute repository fingerprint.
 	// The fingerprint is required for the daemon to start properly.
-	if installGit || installGitHub != "" {
+	if installGit || installGitHub != "" || installAzure != "" {
 		fmt.Println()
-		if err := InitGitForHarness(absPath, installGitHub, !installPublic); err != nil {
+		if err := InitGitForHarness(absPath, installGitHub, installAzure, !installPublic); err != nil {
 			return fmt.Errorf("git initialization failed: %w", err)
 		}
 	}

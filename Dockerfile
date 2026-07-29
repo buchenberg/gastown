@@ -23,6 +23,11 @@ RUN apt-get update && apt-get install -y \
     vim \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+# Install Azure CLI (for Azure DevOps VCS provider)
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
+    az extension add --name azure-devops && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
 # Install Go from official tarball (apt golang-go is too old)
 RUN ARCH=$(dpkg --print-architecture) && \
     curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz

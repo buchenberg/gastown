@@ -1343,7 +1343,7 @@ type MergeQueueConfig struct {
 	MergeStrategy string `json:"merge_strategy,omitempty"`
 
 	// VCSProvider selects the VCS platform for PR operations when
-	// MergeStrategy="pr". Valid values: "github" (default), "bitbucket".
+	// MergeStrategy="pr". Valid values: "github" (default), "bitbucket", "azuredevops".
 	VCSProvider string `json:"vcs_provider,omitempty"`
 
 	// RequireReview controls whether the refinery requires at least one approving

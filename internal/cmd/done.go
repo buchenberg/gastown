@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/steveyegge/gastown/internal/azuredevops"
 	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/events"
@@ -1515,19 +1516,35 @@ func runDone(cmd *cobra.Command, args []string) (retErr error) {
 					prBodyBuilder.WriteString("---\n")
 					prBodyBuilder.WriteString(fmt.Sprintf("*Polecat: %s | Issue: %s*\n", worker, issueID))
 					prBody := prBodyBuilder.String()
-					ghCmd := exec.CommandContext(context.Background(), "gh", "pr", "create",
-						"--base", defaultBranch,
-						"--head", branch,
-						"--title", prTitle,
-						"--body", prBody,
-					)
-					ghCmd.Dir = cwd
-					prOutput, prErr := ghCmd.Output()
+					originURL, _ := g.RemoteURL("origin")
+					var prOutput []byte
+					var prErr error
+					if ado, adoErr := azuredevops.ParseAzureDevOpsRemote(originURL); adoErr == nil {
+						prOutput, prErr = exec.CommandContext(context.Background(), "az", "repos", "pr", "create",
+							"--org", ado.OrgURL(),
+							"--project", ado.Project,
+							"--repository", ado.Repo,
+							"--source-branch", branch,
+							"--target-branch", defaultBranch,
+							"--title", prTitle,
+							"--description", prBody,
+							"--output", "json",
+						).Output()
+					} else {
+						ghCmd := exec.CommandContext(context.Background(), "gh", "pr", "create",
+							"--base", defaultBranch,
+							"--head", branch,
+							"--title", prTitle,
+							"--body", prBody,
+						)
+						ghCmd.Dir = cwd
+						prOutput, prErr = ghCmd.Output()
+					}
 					if prErr != nil {
-						style.PrintWarning("could not create GitHub PR: %v", prErr)
+						style.PrintWarning("could not create pull request: %v", prErr)
 					} else {
 						prURL = strings.TrimSpace(string(prOutput))
-						fmt.Printf("%s GitHub PR created: %s\n", style.Bold.Render("✓"), prURL)
+						fmt.Printf("%s Pull request created: %s\n", style.Bold.Render("✓"), prURL)
 					}
 				} else {
 					fmt.Printf("%s\n", style.Dim.Render("Work stays on feature branch for human review."))

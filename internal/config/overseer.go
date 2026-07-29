@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
 )
 
 // OverseerConfig represents the human operator's identity (mayor/overseer.json).
@@ -116,6 +115,11 @@ func DetectOverseer(townRoot string) (*OverseerConfig, error) {
 		return config, nil
 	}
 
+	// Priority 3b: Try Azure DevOps CLI
+	if config := detectFromAzureDevOps(); config != nil {
+		return config, nil
+	}
+
 	// Priority 4: Fall back to environment
 	return detectFromEnvironment(), nil
 }
@@ -193,6 +197,44 @@ func detectFromGitHub() *OverseerConfig {
 		config.Email = parts[2]
 	}
 
+	return config
+}
+
+// detectFromAzureDevOps attempts to get identity from the Azure DevOps CLI.
+func detectFromAzureDevOps() *OverseerConfig {
+	if _, err := exec.LookPath("az"); err != nil {
+		return nil
+	}
+	cmd := exec.Command("az", "devops", "user", "show", "--output", "json")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	var user struct {
+		DisplayName string `json:"displayName"`
+		UniqueName  string `json:"uniqueName"`
+	}
+	if err := json.Unmarshal(out, &user); err != nil {
+		return nil
+	}
+	if user.DisplayName == "" && user.UniqueName == "" {
+		return nil
+	}
+	config := &OverseerConfig{
+		Type:    "overseer",
+		Version: CurrentOverseerVersion,
+		Source:  "azure-devops-cli",
+	}
+	config.Username = user.DisplayName
+	if config.Username == "" {
+		config.Username = user.UniqueName
+	}
+	if idx := strings.Index(user.UniqueName, "@"); idx > 0 {
+		config.Email = user.UniqueName
+		if config.Username == "" {
+			config.Username = user.UniqueName[:idx]
+		}
+	}
 	return config
 }
 

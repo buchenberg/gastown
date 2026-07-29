@@ -682,9 +682,16 @@ func (f *LiveConvoyFetcher) FetchMergeQueue() ([]MergeQueueRow, error) {
 }
 
 // gitURLToRepoPath converts a git URL to owner/repo format.
-// Supports HTTPS (https://github.com/owner/repo.git) and
+// Supports HTTPS (https://github.com/owner/repo.git, https://dev.azure.com/org/proj/_git/repo) and
 // SSH (git@github.com:owner/repo.git) formats.
 func gitURLToRepoPath(gitURL string) string {
+	// Handle Azure DevOps HTTPS format: https://dev.azure.com/org/project/_git/repo
+	if strings.Contains(gitURL, "dev.azure.com/") || strings.Contains(gitURL, "visualstudio.com/") {
+		path := strings.TrimSuffix(gitURL, ".git")
+		path = strings.TrimSuffix(path, "/")
+		return path
+	}
+
 	// Handle HTTPS format: https://github.com/owner/repo.git
 	if strings.HasPrefix(gitURL, "https://github.com/") {
 		path := strings.TrimPrefix(gitURL, "https://github.com/")

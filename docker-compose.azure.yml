@@ -40,6 +40,9 @@ services:
       OPENCODE_PROVIDER_NAME: ${OPENCODE_PROVIDER_NAME:-deepseek}
       OPENCODE_PROVIDER_BASE_URL: ${OPENCODE_PROVIDER_BASE_URL:-https://api.deepseek.com/v1}
       OPENCODE_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # Azure DevOps VCS provider
+      AZURE_DEVOPS_EXT_PAT: ${AZURE_DEVOPS_EXT_PAT:-}
+      AZURE_DEVOPS_ORG: ${AZURE_DEVOPS_ORG:-}
     volumes:
       - agent-home:/home/agent
       - ${FOLDER:-/home/azureuser/gastown}:/gt

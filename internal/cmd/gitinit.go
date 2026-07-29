@@ -8,13 +8,15 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/steveyegge/gastown/internal/azuredevops"
 	"github.com/steveyegge/gastown/internal/style"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
 
 var (
-	gitInitGitHub string
-	gitInitPublic bool
+	gitInitGitHub  string
+	gitInitAzure   string
+	gitInitPublic  bool
 )
 
 var gitInitCmd = &cobra.Command{
@@ -47,7 +49,8 @@ Examples:
 
 func init() {
 	gitInitCmd.Flags().StringVar(&gitInitGitHub, "github", "", "Create GitHub repo (format: owner/repo, private by default)")
-	gitInitCmd.Flags().BoolVar(&gitInitPublic, "public", false, "Make GitHub repo public (repos are private by default)")
+	gitInitCmd.Flags().StringVar(&gitInitAzure, "azure", "", "Create Azure DevOps repo (format: org/project/repo)")
+	gitInitCmd.Flags().BoolVar(&gitInitPublic, "public", false, "Make repo public (repos are private by default)")
 	rootCmd.AddCommand(gitInitCmd)
 }
 
@@ -190,10 +193,17 @@ func runGitInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Create Azure DevOps repo if requested
+	if gitInitAzure != "" {
+		if err := createAzureDevOpsRepo(hqRoot, gitInitAzure, !gitInitPublic); err != nil {
+			return err
+		}
+	}
+
 	fmt.Printf("\n%s Git initialization complete!\n", style.Bold.Render("✓"))
 
-	// Show next steps if no GitHub was created
-	if gitInitGitHub == "" {
+	// Show next steps if no repo was created
+	if gitInitGitHub == "" && gitInitAzure == "" {
 		fmt.Println()
 		fmt.Println("Next steps:")
 		fmt.Printf("  1. Create initial commit: %s\n",
@@ -326,9 +336,9 @@ func ensureInitialCommit(hqRoot string) error {
 }
 
 // InitGitForHarness is the shared implementation for git initialization.
-// It can be called from both 'gt git-init' and 'gt install --git'.
-// Note: Function name kept for backwards compatibility.
-func InitGitForHarness(hqRoot string, github string, private bool) error {
+// It can be called from both 'gt git-init' and 'gt install --git' with
+// optional repository creation on GitHub or Azure DevOps.
+func InitGitForHarness(hqRoot, github, azure string, private bool) error {
 	// Create .gitignore
 	gitignorePath := filepath.Join(hqRoot, ".gitignore")
 	if err := createGitignore(gitignorePath); err != nil {
@@ -353,6 +363,13 @@ func InitGitForHarness(hqRoot string, github string, private bool) error {
 	// Create GitHub repo if requested
 	if github != "" {
 		if err := createGitHubRepo(hqRoot, github, private); err != nil {
+			return err
+		}
+	}
+
+	// Create Azure DevOps repo if requested
+	if azure != "" {
+		if err := createAzureDevOpsRepo(hqRoot, azure, private); err != nil {
 			return err
 		}
 	}
@@ -492,4 +509,54 @@ func IsBranchProtectionInstalled(hqRoot string) bool {
 	}
 
 	return strings.Contains(string(content), BranchProtectionMarker)
+}
+
+func createAzureDevOpsRepo(hqRoot, repo string, private bool) error {
+	if _, err := exec.LookPath("az"); err != nil {
+		return fmt.Errorf("Azure CLI (az) not found. Install it with: curl -sL https://aka.ms/InstallAzureCLIDeb | bash")
+	}
+
+	parts := strings.SplitN(repo, "/", 3)
+	if len(parts) != 3 {
+		return fmt.Errorf("invalid Azure DevOps repo format (expected org/project/repo): %s", repo)
+	}
+	orgName, project, repoName := parts[0], parts[1], parts[2]
+
+	if err := ensureInitialCommit(hqRoot); err != nil {
+		return fmt.Errorf("creating initial commit: %w", err)
+	}
+
+	info := &azuredevops.RemoteInfo{Org: orgName, Project: project, Repo: repoName}
+	fmt.Printf("   → Creating Azure DevOps repo %s/%s...\n", orgName, repoName)
+
+	createCmd := exec.Command("az", "repos", "create",
+		"--name", repoName,
+		"--project", project,
+		"--org", info.OrgURL(),
+		"--output", "json",
+	)
+	createCmd.Dir = hqRoot
+	out, err := createCmd.Output()
+	if err != nil {
+		return fmt.Errorf("az repos create failed: %s: %w", string(out), err)
+	}
+
+	remoteURL := fmt.Sprintf("https://dev.azure.com/%s/%s/_git/%s", orgName, project, repoName)
+	remoteCmd := exec.Command("git", "remote", "add", "origin", remoteURL)
+	remoteCmd.Dir = hqRoot
+	if output, err := remoteCmd.CombinedOutput(); err != nil {
+		fmt.Printf("   %s Warning: could not add remote origin: %s\n", style.Dim.Render("⚠"), strings.TrimSpace(string(output)))
+		fmt.Printf("   → Run: git remote add origin %s\n", remoteURL)
+	} else {
+		pushCmd := exec.Command("git", "push", "-u", "origin", "HEAD")
+		pushCmd.Dir = hqRoot
+		pushCmd.Stdout = os.Stdout
+		pushCmd.Stderr = os.Stderr
+		if err := pushCmd.Run(); err != nil {
+			fmt.Printf("   %s Push may have failed; retry with: git push -u origin HEAD\n", style.Dim.Render("⚠"))
+		}
+	}
+
+	fmt.Printf("   ✓ Created Azure DevOps repo: %s\n", remoteURL)
+	return nil
 }
