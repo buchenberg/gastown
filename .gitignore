@@ -104,3 +104,4 @@ docs/fork-info/
 GEMINI.md
 .env
 .env.azure
+.kilo/
