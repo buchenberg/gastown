@@ -86,7 +86,11 @@ re-attaches to the running mayor session.
 
 ## Using Azure DevOps as the VCS provider
 
-Set `vcs_provider: azuredevops` in your refinery config:
+Set `vcs_provider: azuredevops` in your rig's refinery config:
+
+**Path:** `<town-root>/<rig-name>/config.json`
+
+**Example** (`gastown/myrig/config.json`):
 
 ```json
 {
@@ -95,6 +99,17 @@ Set `vcs_provider: azuredevops` in your refinery config:
     "merge_strategy": "pr"
   }
 }
+```
+
+Valid `vcs_provider` values: `github` (default), `bitbucket`, `azuredevops`.
+
+Inside the container, the town root is `/gt`, so a rig named `myrig` would be at
+`/gt/myrig/config.json`.
+
+To edit from the host (since `/gt` is bind-mounted from the cloned repo):
+
+```bash
+nano ~/gastown/myrig/config.json
 ```
 
 Create repos on Azure DevOps:
