@@ -49,6 +49,9 @@ COPY --chown=agent:agent . /app/gastown
 
 RUN cd /app/gastown && make build
 
+# Install opencode via npm (Node.js CLI, runs on the Node.js already in the base image)
+RUN npm install -g opencode-ai@latest
+
 COPY --chown=agent:agent docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 

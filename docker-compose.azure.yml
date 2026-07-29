@@ -1,0 +1,53 @@
+# Azure VM deployment for Gas Town
+# Usage: docker compose -f docker-compose.azure.yml up -d
+# 
+# Prerequisites:
+#   1. Clone this repo to ~/gastown on the VM
+#   2. Create .env.azure with your API keys (or export env vars)
+#   3. Run: docker compose -f docker-compose.azure.yml --env-file .env.azure up -d
+
+services:
+  gastown:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gastown-sandbox
+    stdin_open: false
+    tty: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+      - NET_RAW
+    env_file:
+      - .env.azure
+    environment:
+      IS_SANDBOX: 1
+      GIT_USER: Gregory Buchenberger
+      GIT_EMAIL: buchenberger@gmail.com
+      # FOLDER is set to the repo root on the VM so it mounts to /gt
+      FOLDER: ${FOLDER:-/home/azureuser/gastown}
+      # Agent selection
+      GT_DEFAULT_AGENT: ${GT_DEFAULT_AGENT:-opencode}
+      # OpenCode provider/model config
+      OPENCODE_MODEL: ${OPENCODE_MODEL:-deepseek/deepseek-chat}
+      OPENCODE_PROVIDER_NAME: ${OPENCODE_PROVIDER_NAME:-deepseek}
+      OPENCODE_PROVIDER_BASE_URL: ${OPENCODE_PROVIDER_BASE_URL:-https://api.deepseek.com/v1}
+      OPENCODE_API_KEY: ${DEEPSEEK_API_KEY:-}
+    volumes:
+      - agent-home:/home/agent
+      - ${FOLDER:-/home/azureuser/gastown}:/gt
+      - dolt-data:/gt/.dolt-data
+    ports:
+      - "3000:8080"
+    command: sleep infinity
+
+volumes:
+  agent-home:
+  dolt-data:

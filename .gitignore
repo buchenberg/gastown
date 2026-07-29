@@ -35,6 +35,9 @@ config.toml
 !internal/hooks/templates/vibe/config.toml
 gt
 
+# Env files with secrets
+.env.local
+
 # Runtime state (ignore contents, but allow setup-hooks to be tracked)
 state.json
 .runtime/*
@@ -99,3 +102,5 @@ docs/fork-info/
 
 # Gas Town (added by gt)
 GEMINI.md
+.env
+.env.azure

@@ -20,10 +20,13 @@ services:
       - DAC_OVERRIDE
       - FOWNER
       - NET_RAW
+    env_file:
+      - .env.local
     environment:
       IS_SANDBOX: 1
-      GIT_USER: ${GIT_USER:-TestUser}
-      GIT_EMAIL: ${GIT_EMAIL:-test@example.com}
+      GIT_USER: Gregory Buchenberger
+      GIT_EMAIL: buchenberger@gmail.com
+      FOLDER: ${FOLDER:?FOLDER is required}
     volumes:
       # FOLDER must be defined in .env file, e.g. FOLDER=/home/user
       # or provided as an environment variable when running docker compose,
@@ -34,7 +37,7 @@ services:
       # avoid journal corruption from VirtioFS fsync semantics.
       - dolt-data:/gt/.dolt-data
     ports:
-      - "${DASHBOARD_PORT:-8080}:8080"
+      - "3000:8080"
     command: sleep infinity
 
     # Exec into the container with: docker compose exec gastown zsh
