@@ -12,8 +12,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: gastown-sandbox
-    stdin_open: false
-    tty: false
+    stdin_open: true
+    tty: true
     security_opt:
       - no-new-privileges:true
     cap_drop:
